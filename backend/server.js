@@ -47,8 +47,17 @@ app.get("/realtime-data", async (req, res) => {
       return res.status(401).json({ error: "Authorization header is missing" });
     }
 
+    // Function to format date parts
+    const padZero = (number) => (number < 10 ? `0${number}` : number);
+
+    // Get current date
+    const currentDate = new Date();
+    const year = currentDate.getFullYear();
+    const month = padZero(currentDate.getMonth() + 1);
+    const day = padZero(currentDate.getDate());
+
     const monitorResponse = await axios.get(
-      "http://45.8.149.163:8081/ep/api/realtime_monitors/?page=1&year=2024&month=07&day=16",
+      `http://45.8.149.163:8081/ep/api/realtime_monitors/?page=1&year=${year}&month=${month}&day=${day}`,
       {
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +71,7 @@ app.get("/realtime-data", async (req, res) => {
     const getEmployeeData = async (empCode) => {
       try {
         const employeeResponse = await axios.get(
-          `http://localhost:5050/api/employee?employeeDeviceId=${empCode}`,
+          `https://becbarcodeapp.azurewebsites.net/api/employee?employeeDeviceId=${empCode}`,
           {
             headers: {
               "Content-Type": "application/json",
@@ -79,8 +88,8 @@ app.get("/realtime-data", async (req, res) => {
     const combinedDataPromises = monitorData.map(async (monitorRecord) => {
       const empCode = monitorRecord.emp_code;
       const employeeData = await getEmployeeData(empCode);
-      console.log("employeedata", employeeData);
-      if (employeeData.employees.length > 0) {
+      // console.log("employee data", employeeData);
+      if (employeeData && employeeData.employees.length > 0) {
         return {
           ...monitorRecord,
           ...employeeData.employees[0],
