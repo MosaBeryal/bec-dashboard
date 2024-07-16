@@ -40,15 +40,15 @@ app.post("/login", async (req, res) => {
 
 app.get("/realtime-data", async (req, res) => {
   try {
+    const { becServerToken } = req.query;
     let authHeader = req.headers["authorization"];
     authHeader = authHeader.replace(/"/g, "").trim();
     if (!authHeader) {
       return res.status(401).json({ error: "Authorization header is missing" });
     }
 
-    // Get real-time monitors data
     const monitorResponse = await axios.get(
-      "http://45.8.149.163:8081/ep/api/realtime_monitors/?page=1&year=2024&month=07&day=15",
+      "http://45.8.149.163:8081/ep/api/realtime_monitors/?page=1&year=2024&month=07&day=16",
       {
         headers: {
           "Content-Type": "application/json",
@@ -56,14 +56,9 @@ app.get("/realtime-data", async (req, res) => {
         },
       }
     );
-    
 
     const monitorData = monitorResponse.data.data;
 
-    // console.log(monitorResponse)
-
-
-    // Function to get employee data for a given emp_code
     const getEmployeeData = async (empCode) => {
       try {
         const employeeResponse = await axios.get(
@@ -71,22 +66,20 @@ app.get("/realtime-data", async (req, res) => {
           {
             headers: {
               "Content-Type": "application/json",
-              Authorization: authHeader,
+              Authorization: `Bearer ${becServerToken}`,
             },
           }
         );
         return employeeResponse.data;
       } catch (error) {
-        // Return null if the request fails
         return null;
       }
     };
 
-    // Combine monitor data with employee data
     const combinedDataPromises = monitorData.map(async (monitorRecord) => {
       const empCode = monitorRecord.emp_code;
       const employeeData = await getEmployeeData(empCode);
-      console.log("employeedata", employeeData)
+      console.log("employeedata", employeeData);
       if (employeeData.employees.length > 0) {
         return {
           ...monitorRecord,
@@ -96,7 +89,6 @@ app.get("/realtime-data", async (req, res) => {
       return null;
     });
 
-    // Resolve all promises and filter out null values
     const combinedData = (await Promise.all(combinedDataPromises)).filter(
       (item) => item !== null
     );
@@ -106,12 +98,6 @@ app.get("/realtime-data", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-app.get("/hello", (req, res) => {
-  res.send("Hello World");
-});
-
-// Your existing routes and middleware
 
 app.listen(8081, () => {
   console.log("Server is running on port 8081");
